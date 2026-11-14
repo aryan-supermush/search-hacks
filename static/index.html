@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stride</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root{--bg:#f3f3f1;--card:#fff;--ink:#242428;--muted:#6d6d78;--line:#e3e3e0;--google:#ff6a13;--google-soft:#fdeee4;--stride:#0fb463;--stride-soft:#e3f5ec;--ride:#5b6475;--other:#7b5cd6;--stride2:#0f8f8a;--chip:#eeeeeb;--nav:#ffffff}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121214;--card:#1c1c1f;--ink:#f1f1f3;--muted:#a0a0aa;--line:#2f2f34;--google:#ff8a3d;--google-soft:#3a2516;--stride:#3ed38a;--stride-soft:#15301f;--ride:#9aa3b5;--chip:#28282c;--nav:#1c1c1f}}
+:root[data-theme="dark"]{--bg:#121214;--card:#1c1c1f;--ink:#f1f1f3;--muted:#a0a0aa;--line:#2f2f34;--google:#ff8a3d;--google-soft:#3a2516;--stride:#3ed38a;--stride-soft:#15301f;--ride:#9aa3b5;--chip:#28282c;--nav:#1c1c1f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}
+nav{background:var(--nav);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:1000}
+nav .in{max-width:1280px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:14px}
+.logo{font-weight:900;font-style:italic;letter-spacing:.02em;font-size:24px;color:var(--stride)}
+nav .tag{color:var(--muted);font-size:13px}
+main{max-width:1280px;margin:0 auto;padding:16px 16px 48px}
+form{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px;display:grid;gap:10px;grid-template-columns:2fr 2fr 1.4fr auto;align-items:end}
+@media (max-width:860px){form{grid-template-columns:1fr 1fr}}
+label{font-size:11px;color:var(--muted);display:grid;gap:3px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+input{font:inherit;font-size:14px;padding:9px 10px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--ink);width:100%;text-transform:none;letter-spacing:0;font-weight:400}
+button{font:inherit;font-weight:700;padding:10px 20px;border:0;border-radius:4px;background:var(--stride);color:#fff;cursor:pointer}
+button:disabled{opacity:.6;cursor:wait}
+#progress{margin:12px 2px;color:var(--muted);font-size:13px;white-space:pre-line}
+.err{color:var(--google)}
+.act{background:var(--card);border:1px solid var(--line);border-radius:6px;margin-top:14px;overflow:hidden}
+.acthead{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.acthead h2{margin:0;font-size:22px}.acthead .meta{color:var(--muted);font-size:13px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}.chip{background:var(--chip);border-radius:3px;padding:3px 8px;font-size:12px;color:var(--muted)}
+.versus{display:grid;grid-template-columns:1fr 1fr}
+@media (max-width:700px){.versus{grid-template-columns:1fr}}
+.side{padding:16px 20px;border-right:1px solid var(--line);cursor:pointer;position:relative}
+.side:last-child{border-right:0}
+.side.sel::after{content:"";position:absolute;left:0;right:0;bottom:0;height:4px}
+.side.g.sel::after{background:var(--google)}.side.s.sel::after{background:var(--stride)}
+.who{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:8px}
+.who .ln{display:inline-block;width:22px;height:5px;border-radius:3px}
+.g .who{color:var(--google)}.g .ln{background:var(--google)}.s .who{color:var(--stride)}.s .ln{background:var(--stride)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 16px;margin-top:12px}
+.stat .v{font-size:26px;font-weight:300;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .v.big{font-size:36px;font-weight:700}
+.stat .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.g .v.big{color:var(--google)}.s .v.big{color:var(--stride)}
+.win{display:inline-block;font-size:11px;font-weight:700;background:var(--stride-soft);color:var(--stride);border-radius:3px;padding:2px 6px;margin-left:6px;vertical-align:middle}
+.tip{margin-top:10px;padding:8px 10px;border-left:3px solid var(--stride);background:var(--stride-soft);font-size:13px;border-radius:3px}
+.src{margin-top:8px;font-size:12px;color:var(--stride);font-weight:600}
+table.all{width:100%;border-collapse:collapse;font-size:13px}
+table.all th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line)}
+table.all td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle;font-variant-numeric:tabular-nums}
+table.all tr{cursor:pointer}table.all tr:hover td{background:var(--chip)}
+table.all tr.cur td{background:var(--stride-soft)}
+table.all tr.out td{color:var(--muted)}
+.mb{display:inline-block;height:6px;border-radius:3px;background:var(--google);vertical-align:middle;margin-right:6px}
+.tg{font-size:10px;font-weight:800;padding:1px 5px;border-radius:3px;margin-left:4px;color:#fff}
+.tg.g{background:var(--google)}.tg.s{background:var(--stride)}
+.allwrap{border-top:1px solid var(--line);padding:6px 10px 2px;overflow-x:auto}
+.allwrap h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:8px 10px}
+.versus{grid-template-columns:1fr 1.6fr!important}
+.tt{margin-top:10px;font-size:14px;color:var(--muted)}.ttv{font-size:44px;font-weight:800;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+.g .ttv{color:var(--google)}.so .ttv{color:var(--stride)}.so.stride2 .ttv{color:var(--stride2)}
+.when{font-size:18px;font-weight:600;margin-top:2px}.route{font-size:13px;color:var(--muted);margin-top:4px}
+.mini{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:10px;font-size:12px;color:var(--muted)}.mini b{color:var(--ink);font-size:15px}
+.sosub{font-size:12px;color:var(--muted);margin-top:4px}
+.sos{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}@media (max-width:900px){.sos{grid-template-columns:1fr}}
+.so{border:2px solid var(--line);border-radius:6px;padding:12px;cursor:pointer}
+.so.sel.stride{border-color:var(--stride)}.so.sel.stride2{border-color:var(--stride2)}
+.sohead{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;gap:6px;color:var(--stride)}
+.so.stride2 .sohead{color:var(--stride2)}.sohead .ln{display:inline-block;width:18px;height:5px;border-radius:3px;background:var(--stride)}.so.stride2 .sohead .ln{background:var(--stride2)}
+.same{font-size:10px;background:var(--google-soft);color:var(--google);border-radius:3px;padding:1px 5px;text-transform:none;letter-spacing:0}
+.row2{display:flex;justify-content:space-between;align-items:flex-end;gap:8px}
+.nod{text-align:right}.nodv{font-size:28px;font-weight:800;color:var(--google);line-height:1}.nodl{font-size:10px;color:var(--muted);text-transform:uppercase}
+.near{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}.nl{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.near ul{list-style:none;padding:0;margin:4px 0 0}.near li{font-size:12px;padding:3px 0}.near li.none{color:var(--muted)}
+.tg.s2{background:var(--stride2)}
+.side{cursor:default}.side.g{cursor:pointer}
+.define{padding:10px 20px;font-size:13px;background:var(--chip);border-bottom:1px solid var(--line)}
+.nothing{margin-top:10px;font-size:15px}.nothing b{font-size:22px;color:var(--google)}
+.why{margin-top:14px}.why .whyopt{margin-top:12px}.why h4{margin:0 0 4px;font-size:14px;color:var(--stride)}
+.why ul{margin:0;padding-left:18px}.why li{font-size:13px;padding:2px 0}
+.agree{padding:10px 20px;background:var(--stride-soft);color:var(--ink);font-size:13px;border-top:1px solid var(--line)}
+#map{height:min(64vh,620px);border-top:1px solid var(--line)}
+.legend{display:flex;gap:16px;flex-wrap:wrap;padding:10px 20px;font-size:12px;color:var(--muted);border-top:1px solid var(--line)}
+.sw{display:inline-block;width:24px;height:0;border-top:5px solid;vertical-align:middle;margin-right:6px;border-radius:2px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:middle;margin-right:6px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+@media (max-width:900px){.cols{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px 18px}
+.panel h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin:0 0 8px;color:var(--muted)}
+ol.segs{list-style:none;padding:0;margin:4px 0;border-left:2px solid var(--line)}
+ol.segs li{padding:4px 0 4px 14px;font-size:13px;position:relative}
+ol.segs li::before{content:"";position:absolute;left:-6px;top:10px;width:10px;height:10px;border-radius:50%;background:var(--line)}
+ol.segs li.ride::before{background:var(--ride)}ol.segs li.wait::before{background:var(--google)}
+.place{padding:8px 0;font-size:13px;border-top:1px solid var(--line)}
+.place:first-of-type{border-top:0}
+.badge{display:inline-block;font-size:11px;border-radius:3px;padding:1px 6px;margin-left:4px;white-space:nowrap;font-weight:600}
+.confirmed{background:var(--stride-soft);color:var(--stride)}.listed{background:var(--chip);color:var(--muted)}.uncertain{background:var(--google-soft);color:var(--google)}
+.ev{color:var(--muted);font-size:12px}.ev a{color:inherit}
+.backup{margin-top:14px;font-size:13px;color:var(--muted)}
+details{margin-top:14px;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px 18px;font-size:13px}
+summary{cursor:pointer;font-weight:700}
+
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .leaflet-tile-pane{filter:grayscale(.85) invert(.92) hue-rotate(180deg) brightness(.85)}}
+.leaflet-popup-content{font:13px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+
+body{font-size:17px}
+main{max-width:1100px}
+#progress{font-size:16px;margin:16px 4px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}@media (max-width:760px){.tiles{grid-template-columns:1fr}}
+.tile{background:var(--card);border:3px solid var(--line);border-radius:14px;padding:18px 20px;cursor:pointer}
+.tile.g.sel{border-color:var(--google)}.tile.s.sel{border-color:var(--stride)}
+.tw{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tile .who{font-size:14px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+.tile.g .who{color:var(--google)}.tile.s .who{color:var(--stride)}
+.tile .big{font-size:64px;font-weight:800;line-height:1;margin-top:10px}.tile .big span{font-size:24px;font-weight:600;color:var(--muted)}
+.tile .times{font-size:20px;font-weight:600;margin-top:4px}
+.chain{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px;font-size:16px}
+.walk{color:var(--muted)}.sep{color:var(--muted)}
+.pill{display:inline-block;border-radius:6px;padding:2px 8px;font-weight:700;font-size:15px;color:#fff}
+.pill.bus{background:#1a73e8}.pill.train{background:#c5221f}.pill.lrail{background:#e37400}
+.tile .nothing{margin-top:14px;font-size:18px;padding:10px 12px;border-radius:10px}
+.nothing.o{background:var(--google-soft)}.nothing.gr{background:var(--stride-soft)}
+.nothing b{font-size:26px}.nothing.o b{color:var(--google)}.nothing.gr b{color:var(--stride)}
+.switch{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.switch button{background:transparent;color:var(--muted);padding:6px 12px;font-size:14px;border-radius:0}
+.switch button.on{background:var(--stride);color:#fff}
+.sameas{font-size:14px;color:var(--muted);margin-top:8px}
+.define{font-size:15px;color:var(--muted);margin:12px 4px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;border:0;background:none;padding:0}
+.chips{display:inline-flex;gap:6px;flex-wrap:wrap}.chip{font-size:14px}
+.mapcard{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+#map{height:min(60vh,560px);border:0}
+.legend{font-size:14px}
+.tabs{display:flex;gap:6px;margin-top:16px;flex-wrap:wrap}
+.tab{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:10px 18px;font-size:16px;font-weight:600}
+.tab.on{background:var(--ink);color:var(--card);border-color:var(--ink)}
+.tabbody{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin-top:10px}
+.tt{font-weight:800;font-size:18px;margin-bottom:6px}
+ol.steps{list-style:none;padding:0;margin:0}
+ol.steps li{display:flex;gap:14px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line);font-size:17px}
+ol.steps li:last-child{border-bottom:0}.ic{font-size:24px;width:32px;text-align:center}
+ol.steps li.wait{background:var(--google-soft);border-radius:10px;padding:12px 10px}
+.sub{font-size:14px;color:var(--muted);margin-top:2px}
+.lead{font-size:17px;margin:0 0 10px}.small{font-size:14px;color:var(--muted)}
+.whyopt{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:12px}.wt{font-weight:800;color:var(--stride);font-size:16px}
+.whyopt ul{list-style:none;padding:0;margin:10px 0 0}.whyopt li{font-size:17px;padding:5px 0}
+.opts .optrow{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:10px}
+.optrow.cur{background:var(--stride-soft)}.optrow .r{text-align:right}.rt{font-size:22px;font-weight:800}
+.tg{font-size:12px}.tg.s2{background:var(--stride2)}
+.place{padding:10px 0;border-top:1px solid var(--line);font-size:16px}.place:first-child{border-top:0}
+.badge{font-size:12px}
+
+body{background:linear-gradient(180deg,#eef7f2 0,#f6f6f3 320px)}
+nav{background:linear-gradient(90deg,#0a8f50,#16c07a);border-bottom:0}
+nav .logo{color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.15)}nav .tag{color:rgba(255,255,255,.9)}
+form{border:0;box-shadow:0 2px 10px rgba(16,60,40,.08)}
+button#go{background:var(--stride);box-shadow:0 2px 6px rgba(15,180,99,.35)}
+.tile{border-width:0;box-shadow:0 3px 14px rgba(0,0,0,.07);position:relative;overflow:hidden}
+.tile::before{content:"";position:absolute;left:0;right:0;top:0;height:6px}
+.tile.g::before{background:var(--google)}.tile.s::before{background:var(--stride)}
+.tile.g{background:linear-gradient(180deg,#fff3ea 0,#ffffff 55%)}.tile.s{background:linear-gradient(180deg,#e6f8ee 0,#ffffff 55%)}
+.tile.g.sel{outline:3px solid var(--google)}.tile.s.sel{outline:3px solid var(--stride)}
+.tile.g .big{color:var(--google)}.tile.s .big{color:var(--stride)}
+.mapcard{box-shadow:0 3px 14px rgba(0,0,0,.08);border:0}
+.leaflet-tile-pane{filter:none!important}
+.tab{box-shadow:0 1px 4px rgba(0,0,0,.06)}.tab.on{background:var(--stride);border-color:var(--stride);color:#fff}
+.tabbody{border:0;box-shadow:0 3px 14px rgba(0,0,0,.07)}
+.chip{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.leaflet-tooltip{font-weight:700;font-size:13px;border-radius:8px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body{background:var(--bg)}:root:not([data-theme="light"]) .tile.g,:root:not([data-theme="light"]) .tile.s,:root:not([data-theme="light"]) .chip{background:var(--card)}:root:not([data-theme="light"]) .leaflet-tile-pane{filter:none!important}}
+
+.infobar{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;background:var(--card);border-radius:14px;padding:14px 18px;margin-top:16px;box-shadow:0 3px 14px rgba(0,0,0,.07)}
+.def{display:flex;gap:12px;align-items:flex-start;flex:1 1 380px}
+.def .i{flex:none;width:28px;height:28px;border-radius:50%;background:var(--stride);color:#fff;font-weight:800;font-style:italic;font-family:Georgia,serif;display:flex;align-items:center;justify-content:center;font-size:16px}
+.def b{font-size:16px}.dsub{font-size:14px;color:var(--muted);margin-top:2px}
+.conds{display:flex;gap:8px;flex-wrap:wrap}
+.cond{background:var(--stride-soft);color:var(--ink);border-radius:999px;padding:6px 12px;font-size:14px;font-weight:600;white-space:nowrap}
+
+.jump{display:flex;flex-direction:column;gap:6px}
+.jump button{background:#fff;color:var(--ink);border:0;border-radius:999px;padding:7px 12px;font-size:13px;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.18);cursor:pointer;text-align:left}
+.jump button.on{background:var(--stride);color:#fff}
+#map{height:min(58vh,520px)}
+
+/* palette: light blue 60% / navy 30% / orange 10%; map routes keep orange (Google) + green (Stride) */
+:root{--lb:#EAF3FB;--lb2:#D3E6F6;--navy:#1B365D;--or:#F57C1F;--ort:#B45309}
+body{background:var(--lb)!important;color:var(--navy)}
+nav{background:var(--navy)!important}nav .logo{color:#fff}
+form{background:#fff}label{color:var(--navy)!important;opacity:.75}
+input{background:var(--lb)!important;border-color:var(--lb2)!important;color:var(--navy)!important}
+button#go{background:var(--navy)!important;box-shadow:none!important}
+.infobar{background:#fff}.def .i{background:var(--navy)!important}.cond{background:var(--lb2)!important;color:var(--navy)!important}
+.tile{background:#fff!important}.tile::before{height:5px}
+.tile.g::before{background:var(--or)!important}.tile.s::before{background:var(--navy)!important}
+.tile.g .who{color:var(--ort)!important}.tile.s .who{color:var(--navy)!important}
+.tile.g .big{color:var(--navy)!important}.tile.s .big{color:var(--navy)!important}
+.tile.g.sel{outline:3px solid var(--or)!important}.tile.s.sel{outline:3px solid var(--navy)!important}
+.nothing.o{background:#FDEBDD!important}.nothing.gr{background:var(--lb2)!important}
+.nothing.o b{color:var(--ort)!important}.nothing.gr b{color:var(--navy)!important}
+.switch{border-color:var(--lb2)!important}.switch button.on{background:var(--navy)!important}
+.mapcard{background:#fff;border-radius:16px}
+.mapcard .tabs{margin:0;padding:12px 16px 0;border-top:1px solid var(--lb2)}
+.mapcard .tabbody{box-shadow:none!important;border-radius:0;margin:0;padding:16px 20px 20px}
+.tab{background:var(--lb)!important;color:var(--navy)!important;border:0!important;box-shadow:none!important}
+.tab.on{background:var(--navy)!important;color:#fff!important}
+.jump button.on{background:var(--navy)!important}
+.wt{color:var(--navy)!important}.whyopt{border-color:var(--lb2)!important}
+ol.steps li.wait{background:#FDEBDD!important}.optrow.cur{background:var(--lb2)!important}
+.badge.confirmed{background:var(--lb2)!important;color:var(--navy)!important}.badge.uncertain{background:#FDEBDD!important;color:var(--ort)!important}
+.tg.g{background:var(--or)!important}.tg.s,.tg.s2{background:var(--navy)!important}
+.sub,.dsub,.small{color:#4A6283!important}
+</style>
+</head>
+<body>
+<nav><div class="in"><span class="logo">STRIDE</span><span class="tag">Know your route. Take it in stride.</span></div></nav>
+<main>
+  <form id="f" autocomplete="off">
+    <label>From<input id="origin" value="880 W Maude Ave, Sunnyvale, CA 94085" required></label>
+    <label>To<input id="destination" value="Palo Alto Caltrain Station, Palo Alto, CA" required></label>
+    <label>Ready to leave<input id="end" type="datetime-local" value="2026-11-15T06:00" required></label>
+    <button id="go">Find a route</button>
+  </form>
+  <div id="progress"></div>
+  <div id="out"></div>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const steps = ["Getting every bus, train and light-rail option…","Finding open businesses around every stop (Telem)…",
+  "Checking opening hours…","Counting minutes with nothing open nearby…","Almost there…"];
+let map, layer, data, focus = "stride", tab = "trip";
+const R = n => Math.round(n);
+
+$("#f").addEventListener("submit", async e => {
+  e.preventDefault();
+  $("#go").disabled = true; $("#out").innerHTML = ""; if (map){ map.remove(); map = null; }
+  let i = 0; $("#progress").textContent = steps[0];
+  const timer = setInterval(() => { if (i < steps.length - 1) $("#progress").textContent = steps[++i]; }, 8000);
+  try {
+    const r = await fetch("/api/plan", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({origin:$("#origin").value, destination:$("#destination").value, end_time:$("#end").value, max_extra_minutes:60})});
+    const d = await r.json();
+    if (!r.ok || d.error) throw new Error(d.detail || d.error);
+    data = d; focus = "stride"; tab = "trip"; $("#progress").textContent = ""; render();
+  } catch (err) { $("#progress").innerHTML = `<span class="err">${esc(err.message)}</span>`; }
+  finally { clearInterval(timer); $("#go").disabled = false; }
+});
+
+const G = () => data.options.find(o => o.role === "google");
+const S1 = () => data.options.find(o => o.role === "stride");
+const S2 = () => data.options.find(o => o.role === "stride2");
+const cur = () => ({google: G(), stride: S1(), stride2: S2()})[focus] || data.options[+focus.slice(1)];
+const colorOf = f => ({google: css("--google"), stride: css("--stride"), stride2: css("--stride2")})[f] || css("--other");
+const badge = s => `<span class="badge ${s}">${{confirmed:"hours checked",listed:"listing only",uncertain:"hours doubtful"}[s]||s}</span>`;
+const until = h => { const m = String(h).match(/[-–]\s*([^,]+)$/); return /24 hours/i.test(h) ? "open 24 hours" : m ? `open till ${m[1].trim()}` : h; };
+const icon = v => ({BUS:"🚌", HEAVY_RAIL:"🚆", COMMUTER_TRAIN:"🚆", RAIL:"🚆", TRAIN:"🚆", LIGHT_RAIL:"🚊", TRAM:"🚊", SUBWAY:"🚇"})[v] || "🚌";
+const pillCls = v => ["HEAVY_RAIL","COMMUTER_TRAIN","RAIL","TRAIN"].includes(v) ? "train" : ["LIGHT_RAIL","TRAM"].includes(v) ? "lrail" : "bus";
+const pill = s => `<span class="pill ${pillCls(s.vehicle)}">${icon(s.vehicle)} ${esc(s.line)}</span>`;
+const chain = o => o.segments.filter(s => s.kind !== "wait" && !(s.kind === "walk" && s.minutes < 1)).map(s =>
+  s.kind === "walk" ? `<span class="walk">🚶 ${R(s.minutes)}</span>` : pill(s)).join('<span class="sep">›</span>');
+
+function tile(o, who){
+  const g = who === "google";
+  const sw = !g && S2() ? `<div class="switch"><button data-f="stride" class="${focus!=="stride2"?"on":""}">Option 1</button><button data-f="stride2" class="${focus==="stride2"?"on":""}">Option 2</button></div>` : "";
+  const same = !g && o.same_as_google ? `<div class="sameas">Same as Google: no route had less time with nothing open.</div>` : "";
+  return `<div class="tile ${g?"g":"s"} ${(g?focus==="google":focus!=="google")?"sel":""}" data-f="${g?"google":(focus==="stride2"?"stride2":"stride")}">
+    <div class="tw"><span class="who">${g?"Google · fastest":"Stride · most open"}</span>${sw}</div>
+    <div class="big">${o.total_minutes}<span> min</span></div>
+    <div class="times">${esc(o.leave_at)} → ${esc(o.arrive_at)}</div>
+    <div class="chain">${chain(o)}</div>
+    <div class="nothing ${g?"o":"gr"}"><b>${R(o.minutes_without_open_door)} min</b> with nothing open nearby</div>${same}</div>`;
+}
+
+function render(){
+  const c = data.conditions, o = cur();
+  const chips = [c.daylight===false?"🌙 After dark":c.daylight?"☀️ Daylight":null, c.temp_c!=null?`🌡️ ${R(c.temp_c)}°C`:null,
+    c.rain_pct!=null?`🌧️ ${c.rain_pct}% rain`:null, c.aqi!=null?`🍃 AQI ${c.aqi} · ${c.aqi<=50?"good":c.aqi<=100?"moderate":"poor"}`:null].filter(Boolean);
+  const tabs = [["trip","Your trip"],["why","Why Stride chose this"],["all","Other options"],["ev","Evidence"]];
+  $("#out").innerHTML = `
+    <div class="infobar"><div class="def"><span class="i">i</span><div><b>Nothing open nearby</b><div class="dsub">Minutes you walk or wait with no open shop, café or gas station within a 1-minute walk.</div></div></div>
+      <div class="conds">${chips.map(x=>`<span class="cond">${esc(x)}</span>`).join("")}</div></div>
+    <div class="tiles">${tile(G(), "google")}${tile(focus==="stride2"?S2():S1(), "stride")}</div>
+        <div class="mapcard"><div id="map"></div>
+      <div class="legend"><span><span class="sw" style="border-color:var(--google)"></span>Google</span><span><span class="sw" style="border-color:var(--stride)"></span>Stride</span>
+      <span><span class="sw" style="border-color:var(--muted);border-top-style:dashed"></span>Nothing open nearby</span><span><span class="dot" style="background:var(--stride)"></span>Open place</span></div>
+    <div class="tabs">${tabs.map(([k,l]) => `<button class="tab ${tab===k?"on":""}" data-t="${k}">${l}</button>`).join("")}</div>
+    <div class="tabbody">${tab==="trip"?tripTab(o):tab==="why"?whyTab():tab==="all"?table():evTab(o)}</div></div>`;
+  document.querySelectorAll("[data-f]").forEach(el => el.onclick = ev => { ev.stopPropagation(); if (el.dataset.f !== focus){ focus = el.dataset.f; if (map){ map.remove(); map = null; } render(); }
+    document.querySelector(".mapcard").scrollIntoView({behavior:"smooth", block:"start"}); });
+  document.querySelectorAll("[data-t]").forEach(el => el.onclick = () => { tab = el.dataset.t; const y = scrollY; if (map){ map.remove(); map = null; } render(); scrollTo(0, y); });
+  draw();
+}
+
+function tripTab(o){
+  const name = {google:"Google's route", stride:"Stride option 1", stride2:"Stride option 2"}[focus] || "This option";
+  let h = `<div class="tt">${name}</div><ol class="steps">`;
+  for (const s of o.segments){
+    if (s.kind === "walk"){ if (s.minutes < 1) continue;
+      h += `<li><span class="ic">🚶</span><div><b>Walk ${R(s.minutes)} min</b><div class="sub">${s.meters} m · from ${esc(s.start)}</div></div></li>`; }
+    else if (s.kind === "ride")
+      h += `<li><span class="ic">${icon(s.vehicle)}</span><div>${pill(s)} <b>${esc(s.from)}</b> → <b>${esc(s.to)}</b><div class="sub">${esc(s.start)} – ${esc(s.end)} · ${R(s.minutes)} min</div></div></li>`;
+    else { const w = o.waits.find(x => x.stop === s.stop && x.start === s.start) || {}; const n = w.nearest_open;
+      h += `<li class="wait"><span class="ic">⏱️</span><div><b>Wait ${R(s.minutes)} min</b> at ${esc(s.stop)}<div class="sub">${n ? `Nearest open: ${esc(n.name)}, ${n.distance_m} m away, ${esc(until(n.hours_today))}` : "Nothing open nearby"}</div></div></li>`; }
+  }
+  return h + `<li><span class="ic">📍</span><div><b>Arrive ${esc(o.arrive_at)}</b></div></li></ol>`;
+}
+
+function passed(o){
+  const out = [], seen = new Set();
+  for (const w of o.waits) if (w.nearest_open && w.covered && !seen.has(w.nearest_open.name)){ seen.add(w.nearest_open.name); out.push(w.nearest_open); }
+  for (const p of o.open_doors) if (!seen.has(p.name)){ seen.add(p.name); out.push(p); }
+  return out;
+}
+
+function whyOne(o, n){
+  const g = G(), L = [];
+  if (o.same_as_google) L.push(`✅ Same as Google's route. Stride checked all ${data.options.length} options and none was better.`);
+  else {
+    L.push(`✅ <b>${R(o.minutes_without_open_door)} min</b> with nothing open nearby, instead of <b>${R(g.minutes_without_open_door)} min</b> on Google's route.`);
+    if (o.walk_minutes < g.walk_minutes - 1) L.push(`🚶 Less walking: <b>${R(o.walk_minutes)} min</b> instead of ${R(g.walk_minutes)} min.`);
+    const p = passed(o);
+    if (p.length) L.push(`🏪 Passes ${p.slice(0,3).map(x => `<b>${esc(x.name)}</b>`).join(", ")}${p.length>3?` and ${p.length-3} more`:""}.`);
+  }
+  const later = (Date.parse("2000/1/1 " + o.arrive_at) - Date.parse("2000/1/1 " + g.arrive_at)) / 60000;
+  if (!o.same_as_google) L.push(`⏰ You arrive at <b>${esc(o.arrive_at)}</b>${later > 0 ? `, ${R(later)} min later than Google` : later < 0 ? `, ${R(-later)} min earlier than Google` : ""}.`);
+  return `<div class="whyopt"><div class="wt">Option ${n}</div><div class="chain">${chain(o)}</div><ul>${L.map(l=>`<li>${l}</li>`).join("")}</ul></div>`;
+}
+
+function whyTab(){
+  return `<p class="lead">Stride looked at <b>every bus, train and light-rail option</b> (${data.options.length}), checked which places are open along each one, and picked the routes where you spend the least time with nothing open nearby.</p>
+    ${whyOne(S1(), 1)}${S2() ? whyOne(S2(), 2) : ""}
+    <p class="small">This counts open businesses. It is not a safety rating; you decide what matters to you.</p>`;
+}
+
+function table(){
+  const rows = data.options.map((o, i) => ({o, i})).sort((a, b) => a.o.minutes_without_open_door - b.o.minutes_without_open_door || a.o.total_minutes - b.o.total_minutes);
+  return `<div class="opts">${rows.map(({o, i}) => {
+    const f = {google:"google", stride:"stride", stride2:"stride2"}[o.role] || "o" + i;
+    const tag = o.role === "google" ? '<span class="tg g">Google</span>' : o.role === "stride" ? '<span class="tg s">Stride 1</span>' : o.role === "stride2" ? '<span class="tg s2">Stride 2</span>' : "";
+    return `<div class="optrow ${f===focus?"cur":""}" data-f="${f}"><div><div class="chain">${chain(o)}</div><div class="sub">${esc(o.leave_at)} → ${esc(o.arrive_at)} ${tag}</div></div>
+      <div class="r"><div class="rt">${o.total_minutes} min</div><div class="sub"><b>${R(o.minutes_without_open_door)} min</b> nothing open</div></div></div>`; }).join("")}</div>`;
+}
+
+function evTab(o){
+  let h = "";
+  for (const w of o.waits){ const n = w.nearest_open; if (!n) continue;
+    h += `<div class="place"><b>${esc(n.name)}</b> ${badge(n.status)}<div class="sub">${n.distance_m} m from your wait at ${esc(w.stop)} · today ${esc(n.hours_today)}</div>${src(n)}</div>`; }
+  for (const p of o.open_doors) h += `<div class="place"><b>${esc(p.name)}</b> ${badge(p.status)}<div class="sub">${p.distance_m} m from your route · today ${esc(p.hours_today)}</div>${src(p)}</div>`;
+  for (const p of o.skipped_places) h += `<div class="place"><b>${esc(p.name)}</b> ${badge(p.status)}<div class="sub">Not counted. ${esc(p.reason)}</div>${src(p)}</div>`;
+  return (h || `<p>No open business within ${data.radius_m} m on this route.</p>`) +
+    `<details><summary>${esc(data.trace.summary)}</summary><p class="sub">${data.trace.lines.map(esc).join("<br>")}<br>Providers: ${data.trace.providers.map(esc).join(", ")}</p></details>`;
+}
+const src = p => (p.evidence||[]).slice(0,2).map(x => `<div class="sub">“${esc(x.quote)}” ${x.url?`<a href="${esc(x.url)}" target="_blank" rel="noopener">source</a>`:""}</div>`).join("");
+
+function route(o, color, weight, opacity){
+  const pts = [];
+  for (const l of o.map){
+    pts.push(...l.coords);
+    L.polyline(l.coords, {color:"#ffffff", weight:weight + 6, opacity:opacity, lineCap:"round", lineJoin:"round"}).addTo(layer);
+    if (l.kind === "ride") L.polyline(l.coords, {color, weight, opacity, lineCap:"round", lineJoin:"round"}).bindTooltip(esc(l.label)).addTo(layer);
+    else L.polyline(l.coords, {color, weight, opacity, lineCap:"round", lineJoin:"round", dashArray:l.covered ? null : "1 14"}).addTo(layer);
+  }
+  return pts;
+}
+
+function draw(){
+  map = L.map("map", {scrollWheelZoom:false});
+  const dk = matchMedia("(prefers-color-scheme: dark)").matches ? "Dark" : "Light";
+  const esri = n => `https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_${dk}_Gray_${n}/MapServer/tile/{z}/{y}/{x}`;
+  L.tileLayer(esri("Base"), {maxZoom:16, maxNativeZoom:16, attribution:"Tiles &copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors"}).addTo(map);
+  layer = L.layerGroup().addTo(map);
+  L.tileLayer(esri("Reference"), {maxZoom:16, maxNativeZoom:16, pane:"overlayPane"}).addTo(map);
+  const g = G(), o = cur(), SC = css("--stride"), GC = css("--google");
+  const other = focus === "google" ? S1() : g, otherColor = focus === "google" ? SC : GC;
+  let bounds = [];
+  if (other && other !== o) bounds = route(other, otherColor, 6, .55);
+  bounds = bounds.concat(route(o, colorOf(focus), 9, 1));
+  const ends = o.map.filter(l => l.coords.length);
+  if (ends.length){
+    L.circleMarker(ends[0].coords[0], {radius:9, color:"#fff", weight:3, fillColor:css("--ink"), fillOpacity:1}).bindTooltip(`Start ${esc(o.leave_at)}`, {permanent:true, direction:"left"}).addTo(layer);
+    L.circleMarker(ends.at(-1).coords.at(-1), {radius:9, color:"#fff", weight:3, fillColor:css("--ink"), fillOpacity:1}).bindTooltip(`Arrive ${esc(o.arrive_at)}`, {permanent:true, direction:"right"}).addTo(layer);
+  }
+  for (const w of o.waits){
+    const n = w.nearest_open;
+    L.circleMarker([w.lat, w.lng], {radius:11, color:w.covered?SC:GC, weight:3, fillColor:"#fff", fillOpacity:.9})
+      .bindTooltip(`Wait ${R(w.minutes)} min`, {permanent:true, direction:"top", offset:[0,-10]}).addTo(layer);
+    bounds.push([w.lat, w.lng]);
+    if (n){ L.polyline([[w.lat, w.lng], [n.lat, n.lng]], {color:SC, weight:2, dashArray:"4 6"}).addTo(layer);
+      L.circleMarker([n.lat, n.lng], {radius:7, color:"#fff", weight:2, fillColor:SC, fillOpacity:1}).bindPopup(`<b>${esc(n.name)}</b><br>${esc(until(n.hours_today))}`).addTo(layer); bounds.push([n.lat, n.lng]); }
+  }
+  for (const p of o.open_doors)
+    L.circleMarker([p.lat, p.lng], {radius:7, color:"#fff", weight:2, fillColor:SC, fillOpacity:1}).bindPopup(`<b>${esc(p.name)}</b><br>${esc(until(p.hours_today))}`).addTo(layer);
+  const own = o.map.flatMap(l => l.coords).concat(o.waits.map(w => [w.lat, w.lng]));
+  if (own.length) map.fitBounds(own, {padding:[18,18]});
+  // app-style jump buttons: whole trip, each walking part / wait, arrival
+  const walks = o.map.filter(l => l.kind === "walk" && l.coords.length);
+  const stops = [["Whole trip", own, 15]];
+  if (walks.length) stops.push(["🚶 Start", walks[0].coords, 17]);
+  o.waits.forEach((w, i) => stops.push([`⏱️ Wait ${R(w.minutes)} min`, [[w.lat, w.lng]].concat(w.nearest_open ? [[w.nearest_open.lat, w.nearest_open.lng]] : []), 17]));
+  if (walks.length > 1) stops.push(["📍 Arrive", walks.at(-1).coords, 17]);
+  const ctl = L.control({position:"topright"});
+  ctl.onAdd = () => { const d = L.DomUtil.create("div", "jump"); L.DomEvent.disableClickPropagation(d);
+    stops.forEach(([label, pts, z], i) => { const b = L.DomUtil.create("button", i === 0 ? "on" : "", d); b.textContent = label;
+      b.onclick = () => { d.querySelectorAll("button").forEach(x => x.classList.remove("on")); b.classList.add("on");
+        map.flyToBounds(L.latLngBounds(pts), {padding:[50,50], maxZoom:Math.min(z,16), duration:.8}); }; });
+    return d; };
+  ctl.addTo(map);
+}
+</script>
+</body>
+</html>
